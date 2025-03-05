@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+body {
+  background: linear-gradient(to right, #FDF6F0, #EED9C4);
+  font-family: "Poppins", sans-serif;
+}
+
+.background {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quiz-container {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 50%;
+  max-width: 500px;
+}
+
+.floating-element, .floating-element2 {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 192, 203, 0.4);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.floating-element {
+  top: 10%;
+  left: 20%;
+}
+
+.floating-element2 {
+  bottom: 10%;
+  right: 25%;
+}
