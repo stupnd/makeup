@@ -1,35 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css"; // Make sure you create and include this CSS file
 
 const App = () => {
-  const [file, setFile] = useState(null);
-  const [skinTone, setSkinTone] = useState("");
+  const [step, setStep] = useState(0);
   const [quizData, setQuizData] = useState({
     makeupStyle: "",
     skinType: "",
     finish: "",
   });
-  const [recommendations, setRecommendations] = useState([]);
-  const [step, setStep] = useState(1); // Controls quiz steps
+  const [file, setFile] = useState(null);
+  const [skinTone, setSkinTone] = useState("");
+  const [recommendations, setRecommendations] = useState({});
+  const sectionsRef = useRef([]);
 
-  // Handle file upload
+  useEffect(() => {
+    if (sectionsRef.current[step]) {
+      sectionsRef.current[step].scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [step]);
+
+  const handleQuizChange = (event) => {
+    setQuizData({ ...quizData, [event.target.name]: event.target.value });
+    setTimeout(() => setStep((prevStep) => prevStep + 1), 700);
+  };
+
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
-  // Handle quiz input change
-  const handleQuizChange = (event) => {
-    setQuizData({
-      ...quizData,
-      [event.target.name]: event.target.value,
-    });
-    setStep(step + 1); // Move to next question automatically
-  };
-
-  // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!file) {
       alert("Please select an image!");
       return;
@@ -39,30 +43,27 @@ const App = () => {
     formData.append("image", file);
 
     try {
-      // Step 1: Upload Image & Detect Skin Tone
       const response = await fetch("http://127.0.0.1:5000/upload-image", {
         method: "POST",
         body: formData,
       });
-
       const data = await response.json();
       setSkinTone(data.skin_tone);
 
-      // Step 2: Send Quiz Data + Skin Tone to Backend
-      const recResponse = await fetch("http://127.0.0.1:5000/full-makeup-recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          skin_tone: data.skin_tone, 
-          makeupStyle: quizData.makeupStyle,
-          skinType: quizData.skinType,
-          finish: quizData.finish
-        }),
-      });
-
+      const recResponse = await fetch(
+        "http://127.0.0.1:5000/full-makeup-recommend",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            skin_tone: data.skin_tone,
+            ...quizData,
+          }),
+        }
+      );
       const recData = await recResponse.json();
       setRecommendations(recData.recommendations);
-
+      setTimeout(() => setStep((prevStep) => prevStep + 1), 700);
     } catch (error) {
       console.error("Error:", error);
       alert("Something went wrong. Please try again!");
@@ -70,71 +71,78 @@ const App = () => {
   };
 
   return (
-    <div className="container text-center mt-5" style={{ backgroundColor: "#2F2963", minHeight: "100vh", padding: "30px", borderRadius: "20px" }}>
-      <h1 className="fw-bold text-primary"> Personalized Makeup Quiz </h1>
+    <div className="app-container">
+      <h1>Makeup Recommender</h1>
 
-      {/* Image Upload Section */}
-      {step === 1 && (
-        <div className="mt-4">
-          <h2 className="text-secondary"> Upload a Selfie</h2>
-          <input type="file" onChange={handleFileChange} accept="image/*" className="form-control mb-3" />
-          <button className="btn btn-dark" onClick={() => setStep(2)}>Next →</button>
-        </div>
-      )}
+      <div className="progress-bar-container">
+        <div className="progress-bar" style={{ width: `${(step / 4) * 100}%` }}></div>
+      </div>
 
-      {/* Quiz Section */}
-      {step === 2 && (
-        <div className="mt-4">
-          <h2 className="text-secondary"> What's your preferred makeup style?</h2>
-          <button className="btn btn-outline-dark w-100 mt-2" name="makeupStyle" value="natural" onClick={handleQuizChange}>Natural</button>
-          <button className="btn btn-outline-dark w-100 mt-2" name="makeupStyle" value="glam" onClick={handleQuizChange}>Glam</button>
-          <button className="btn btn-outline-dark w-100 mt-2" name="makeupStyle" value="bold" onClick={handleQuizChange}>Bold</button>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="mt-4">
-          <h2 className="text-secondary"> What's your skin type?</h2>
-          <button className="btn btn-outline-dark w-100 mt-2" name="skinType" value="oily" onClick={handleQuizChange}>Oily</button>
-          <button className="btn btn-outline-dark w-100 mt-2" name="skinType" value="dry" onClick={handleQuizChange}>Dry</button>
-          <button className="btn btn-outline-dark w-100 mt-2" name="skinType" value="combination" onClick={handleQuizChange}>Combination</button>
-        </div>
-      )}
-
-      {step === 4 && (
-        <div className="mt-4">
-          <h2 className="text-secondary">What type of finish do you prefer?</h2>
-          <button className="btn btn-outline-dark w-100 mt-2" name="finish" value="matte" onClick={handleQuizChange}>Matte</button>
-          <button className="btn btn-outline-dark w-100 mt-2" name="finish" value="dewy" onClick={handleQuizChange}>Dewy</button>
-        </div>
-      )}
-
-      {step === 5 && (
-        <div className="mt-4">
-          <button className="btn btn-success px-4 py-2" onClick={handleSubmit}>✨ Get Recommendations! ✨</button>
-        </div>
-      )}
-
-      {/* Display Results */}
-      {skinTone && <h2 className="mt-4"> Detected Skin Tone: <span className="text-primary">{skinTone}</span></h2>}
-      
-      {recommendations.length > 0 && (
-        <div className="mt-4">
-          <h2>💄 Recommended Products:</h2>
-          <div className="row justify-content-center">
-            {recommendations.map((product) => (
-              <div key={product.id} className="col-md-3 mb-3">
-                <div className="card shadow-sm">
-                  <div className="card-body">
-                    <h5 className="card-title">{product.name}</h5>
-                    <a href={product.link} target="_blank" rel="noopener noreferrer" className="btn btn-outline-dark btn-sm">
-                      View Product
-                    </a>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="card-container">
+        {step === 0 && (
+          <div ref={(el) => (sectionsRef.current[0] = el)}>
+            <h3>What is your preferred makeup style?</h3>
+            <select name="makeupStyle" onChange={handleQuizChange} className="form-select">
+              <option value="">Select</option>
+              <option value="natural">Natural</option>
+              <option value="glam">Glam</option>
+              <option value="bold">Bold</option>
+            </select>
           </div>
+        )}
+
+        {step === 1 && (
+          <div ref={(el) => (sectionsRef.current[1] = el)}>
+            <h3>What is your skin type?</h3>
+            <select name="skinType" onChange={handleQuizChange} className="form-select">
+              <option value="">Select</option>
+              <option value="oily">Oily</option>
+              <option value="dry">Dry</option>
+              <option value="combination">Combination</option>
+            </select>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div ref={(el) => (sectionsRef.current[2] = el)}>
+            <h3>What kind of finish do you prefer?</h3>
+            <select name="finish" onChange={handleQuizChange} className="form-select">
+              <option value="">Select</option>
+              <option value="matte">Matte</option>
+              <option value="dewy">Dewy</option>
+            </select>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div ref={(el) => (sectionsRef.current[3] = el)}>
+            <h3>Upload an Image</h3>
+            <input type="file" onChange={handleFileChange} className="form-control mb-3" accept="image/*" />
+            <button className="btn btn-primary w-100" onClick={handleSubmit}>Get Recommendations</button>
+          </div>
+        )}
+      </div>
+
+      {step === 4 && skinTone && (
+        <div ref={(el) => (sectionsRef.current[4] = el)} className="recommendations-container">
+          <h2>Detected Skin Tone: {skinTone}</h2>
+          <h4>Recommended Products:</h4>
+
+          {recommendations && Object.entries(recommendations).map(([category, products]) => (
+            <div key={category} className="category-section">
+              <h2>{category.toUpperCase()}</h2>
+              <div className="product-scroll-container">
+                {products.map((product, index) => (
+                  <div key={index} className="product-card">
+                    <img src={product.image} alt={product.name} className="product-image" />
+                    <p><strong>{product.brand}</strong>: {product.name}</p>
+                    <p>{product.price}</p>
+                    <a href={product.link} target="_blank" rel="noopener noreferrer" className="view-button">View Product</a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
